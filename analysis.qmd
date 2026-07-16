@@ -70,3 +70,58 @@ ggplot(edu_pct, aes(x = pct_bachelors_plus, y = fct_reorder(NAME, pct_bachelors_
     axis.text.y = element_text(size = 8)
   )
 ```
+```{r}
+#| message: false
+
+age_ca <- get_acs(
+  geography = "county",
+  variables = c(median_age = "B01002_001", population = "B01003_001"),
+  state = "CA",
+  year = 2020,
+  geometry = FALSE
+)
+```
+
+```{r}
+#| message: false
+
+age_ca <- get_acs(
+  geography = "county",
+  variables = c(median_age = "B01002_001", population = "B01003_001"),
+  state = "CA",
+  year = 2020,
+  geometry = FALSE
+)
+
+age_ca_wide <- age_ca |>
+  select(GEOID, NAME, variable, estimate) |>
+  pivot_wider(names_from = variable, values_from = estimate) |>
+  mutate(county_label = str_remove(NAME, " County, California"))
+
+top_counties <- age_ca_wide |>
+  slice_max(population, n = 8)
+
+ggplot(age_ca_wide, aes(x = population, y = median_age)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_text(
+    data = top_counties,
+    aes(label = county_label),
+    size = 3,
+    color = "gray20",
+    vjust = -0.8
+  ) +
+  scale_x_log10(labels = scales::label_comma()) +
+  labs(
+    title = "Larger California Counties Tend to Skew Slightly Younger",
+    subtitle = "Population (log scale) vs. median age, by county",
+    x = "Population (log scale)",
+    y = "Median Age",
+    caption = "Source: U.S. Census Bureau, American Community Survey 5-Year Estimates (2020), Table B01002 & B01003"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(color = "gray30", size = 10),
+    plot.caption = element_text(color = "gray50", size = 8, hjust = 0)
+  )
+```
