@@ -6,7 +6,6 @@ execute:
   echo: false
 ---
 
-
 ```{r}
 #| message: false
 library(tidyverse)
@@ -16,6 +15,7 @@ library(sf)
 
 ```{r}
 #| message: false
+#| cache: true
 #| include: false
 income_tx <- get_acs(
   geography = "county",
@@ -27,12 +27,46 @@ income_tx <- get_acs(
 ```
 
 ```{r}
-ggplot(income_tx) +
-  geom_sf(aes(fill = estimate), color = "white", size = 0.1) +
-  scale_fill_viridis_c(option = "plasma", name = "Median income") +
+#| message: false
+edu_state <- get_acs(
+  geography = "state",
+  variables = c("B15003_001", "B15003_022", "B15003_023", "B15003_024", "B15003_025"),
+  summary_var = "B15003_001",
+  year = 2020
+)
+```
+
+```{r}
+#| message: false
+#| fig-height: 10
+
+edu_pct <- edu_state |>
+  filter(variable != "B15003_001") |>
+  group_by(GEOID, NAME) |>
+  summarize(
+    bachelors_plus = sum(estimate),
+    total = first(summary_est),
+    .groups = "drop"
+  ) |>
+  mutate(pct_bachelors_plus = bachelors_plus / total * 100)
+
+ggplot(edu_pct, aes(x = pct_bachelors_plus, y = fct_reorder(NAME, pct_bachelors_plus))) +
+  geom_col(fill = "steelblue") +
+  scale_x_continuous(labels = scales::label_percent(scale = 1)) +
   labs(
-    title = "Median household income by county, Texas (2020)",
-    caption = "Source: ACS 5-year estimates via tidycensus"
+    title = "Educational Attainment Varies Widely Across U.S. States",
+    subtitle = "Percent of adults aged 25+ with a bachelor's degree or higher, 2020",
+    x = "Percent with Bachelor's Degree or Higher",
+    y = NULL,
+    caption = "Source: U.S. Census Bureau, American Community Survey 5-Year Estimates (2020), Table B15003"
   ) +
-  theme_void()
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 15),
+    plot.subtitle = element_text(color = "gray30", size = 11),
+    plot.caption = element_text(color = "gray50", size = 8, hjust = 0),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank(),
+    axis.text.y = element_text(size = 8)
+  )
 ```
